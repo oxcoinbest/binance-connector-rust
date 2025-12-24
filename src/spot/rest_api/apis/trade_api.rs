@@ -908,6 +908,8 @@ pub enum OrderListOcoBelowTypeEnum {
     StopLoss,
     #[serde(rename = "STOP_LOSS_LIMIT")]
     StopLossLimit,
+    #[serde(rename = "LIMIT_MAKER")]
+    LimitMaker,
     #[serde(rename = "TAKE_PROFIT")]
     TakeProfit,
     #[serde(rename = "TAKE_PROFIT_LIMIT")]
@@ -920,6 +922,7 @@ impl OrderListOcoBelowTypeEnum {
         match self {
             Self::StopLoss => "STOP_LOSS",
             Self::StopLossLimit => "STOP_LOSS_LIMIT",
+            Self::LimitMaker => "LIMIT_MAKER",
             Self::TakeProfit => "TAKE_PROFIT",
             Self::TakeProfitLimit => "TAKE_PROFIT_LIMIT",
         }
@@ -933,6 +936,7 @@ impl std::str::FromStr for OrderListOcoBelowTypeEnum {
         match s {
             "STOP_LOSS" => Ok(Self::StopLoss),
             "STOP_LOSS_LIMIT" => Ok(Self::StopLossLimit),
+            "LIMIT_MAKER" => Ok(Self::LimitMaker),
             "TAKE_PROFIT" => Ok(Self::TakeProfit),
             "TAKE_PROFIT_LIMIT" => Ok(Self::TakeProfitLimit),
             other => Err(format!("invalid OrderListOcoBelowTypeEnum: {}", other).into()),
