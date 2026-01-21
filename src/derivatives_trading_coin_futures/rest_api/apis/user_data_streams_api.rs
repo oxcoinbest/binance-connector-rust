@@ -32,7 +32,9 @@ const HAS_TIME_UNIT: bool = false;
 #[async_trait]
 pub trait UserDataStreamsApi: Send + Sync {
     async fn close_user_data_stream(&self) -> anyhow::Result<RestApiResponse<Value>>;
-    async fn keepalive_user_data_stream(&self) -> anyhow::Result<RestApiResponse<Value>>;
+    async fn keepalive_user_data_stream(
+        &self,
+    ) -> anyhow::Result<RestApiResponse<models::KeepaliveUserDataStreamResponse>>;
     async fn start_user_data_stream(
         &self,
     ) -> anyhow::Result<RestApiResponse<models::StartUserDataStreamResponse>>;
@@ -71,11 +73,13 @@ impl UserDataStreamsApi for UserDataStreamsApiClient {
         .await
     }
 
-    async fn keepalive_user_data_stream(&self) -> anyhow::Result<RestApiResponse<Value>> {
+    async fn keepalive_user_data_stream(
+        &self,
+    ) -> anyhow::Result<RestApiResponse<models::KeepaliveUserDataStreamResponse>> {
         let query_params = BTreeMap::new();
         let body_params = BTreeMap::new();
 
-        send_request::<Value>(
+        send_request::<models::KeepaliveUserDataStreamResponse>(
             &self.configuration,
             "/dapi/v1/listenKey",
             reqwest::Method::PUT,
@@ -148,9 +152,11 @@ mod tests {
     impl UserDataStreamsApi for MockUserDataStreamsApiClient {
         async fn close_user_data_stream(&self) -> anyhow::Result<RestApiResponse<Value>> {
             if self.force_error {
-                return Err(
-                    ConnectorError::ConnectorClientError("ResponseError".to_string()).into(),
-                );
+                return Err(ConnectorError::ConnectorClientError {
+                    msg: "ResponseError".to_string(),
+                    code: None,
+                }
+                .into());
             }
 
             let dummy_response = Value::Null;
@@ -165,14 +171,21 @@ mod tests {
             Ok(dummy.into())
         }
 
-        async fn keepalive_user_data_stream(&self) -> anyhow::Result<RestApiResponse<Value>> {
+        async fn keepalive_user_data_stream(
+            &self,
+        ) -> anyhow::Result<RestApiResponse<models::KeepaliveUserDataStreamResponse>> {
             if self.force_error {
-                return Err(
-                    ConnectorError::ConnectorClientError("ResponseError".to_string()).into(),
-                );
+                return Err(ConnectorError::ConnectorClientError {
+                    msg: "ResponseError".to_string(),
+                    code: None,
+                }
+                .into());
             }
 
-            let dummy_response = Value::Null;
+            let resp_json: Value = serde_json::from_str(r#"{"listenKey":"vmNt6gl1so8bXVsaAY153FG5tf63QaODxUarKUM8V8rY4ElSwEe431DNIYNKOkQp"}"#).unwrap();
+            let dummy_response: models::KeepaliveUserDataStreamResponse =
+                serde_json::from_value(resp_json.clone())
+                    .expect("should parse into models::KeepaliveUserDataStreamResponse");
 
             let dummy = DummyRestApiResponse {
                 inner: Box::new(move || Box::pin(async move { Ok(dummy_response) })),
@@ -188,9 +201,11 @@ mod tests {
             &self,
         ) -> anyhow::Result<RestApiResponse<models::StartUserDataStreamResponse>> {
             if self.force_error {
-                return Err(
-                    ConnectorError::ConnectorClientError("ResponseError".to_string()).into(),
-                );
+                return Err(ConnectorError::ConnectorClientError {
+                    msg: "ResponseError".to_string(),
+                    code: None,
+                }
+                .into());
             }
 
             let resp_json: Value = serde_json::from_str(r#"{"listenKey":"pqia91ma19a5s61cv6a81va65sdf19v8a65a1a5s61cv6a81va65sdf19v8a65a1"}"#).unwrap();
@@ -262,12 +277,11 @@ mod tests {
         TOKIO_SHARED_RT.block_on(async {
             let client = MockUserDataStreamsApiClient { force_error: false };
 
-            let expected_response = Value::Null;
 
-            let resp = client
-                .keepalive_user_data_stream()
-                .await
-                .expect("Expected a response");
+            let resp_json: Value = serde_json::from_str(r#"{"listenKey":"vmNt6gl1so8bXVsaAY153FG5tf63QaODxUarKUM8V8rY4ElSwEe431DNIYNKOkQp"}"#).unwrap();
+            let expected_response : models::KeepaliveUserDataStreamResponse = serde_json::from_value(resp_json.clone()).expect("should parse into models::KeepaliveUserDataStreamResponse");
+
+            let resp = client.keepalive_user_data_stream().await.expect("Expected a response");
             let data_future = resp.data();
             let actual_response = data_future.await.unwrap();
             assert_eq!(actual_response, expected_response);
@@ -279,12 +293,11 @@ mod tests {
         TOKIO_SHARED_RT.block_on(async {
             let client = MockUserDataStreamsApiClient { force_error: false };
 
-            let expected_response = Value::Null;
 
-            let resp = client
-                .keepalive_user_data_stream()
-                .await
-                .expect("Expected a response");
+            let resp_json: Value = serde_json::from_str(r#"{"listenKey":"vmNt6gl1so8bXVsaAY153FG5tf63QaODxUarKUM8V8rY4ElSwEe431DNIYNKOkQp"}"#).unwrap();
+            let expected_response : models::KeepaliveUserDataStreamResponse = serde_json::from_value(resp_json.clone()).expect("should parse into models::KeepaliveUserDataStreamResponse");
+
+            let resp = client.keepalive_user_data_stream().await.expect("Expected a response");
             let data_future = resp.data();
             let actual_response = data_future.await.unwrap();
             assert_eq!(actual_response, expected_response);

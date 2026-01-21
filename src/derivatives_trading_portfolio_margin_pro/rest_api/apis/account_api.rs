@@ -51,6 +51,10 @@ pub trait AccountApi: Send + Sync {
         &self,
         params: GetAutoRepayFuturesStatusParams,
     ) -> anyhow::Result<RestApiResponse<models::GetAutoRepayFuturesStatusResponse>>;
+    async fn get_delta_mode_status(
+        &self,
+        params: GetDeltaModeStatusParams,
+    ) -> anyhow::Result<RestApiResponse<models::GetDeltaModeStatusResponse>>;
     async fn get_portfolio_margin_pro_account_balance(
         &self,
         params: GetPortfolioMarginProAccountBalanceParams,
@@ -97,6 +101,10 @@ pub trait AccountApi: Send + Sync {
         &self,
         params: RepayFuturesNegativeBalanceParams,
     ) -> anyhow::Result<RestApiResponse<models::RepayFuturesNegativeBalanceResponse>>;
+    async fn switch_delta_mode(
+        &self,
+        params: SwitchDeltaModeParams,
+    ) -> anyhow::Result<RestApiResponse<models::SwitchDeltaModeResponse>>;
     async fn transfer_ldusdt_rwusd_for_portfolio_margin(
         &self,
         params: TransferLdusdtRwusdForPortfolioMarginParams,
@@ -266,6 +274,29 @@ impl GetAutoRepayFuturesStatusParams {
     #[must_use]
     pub fn builder() -> GetAutoRepayFuturesStatusParamsBuilder {
         GetAutoRepayFuturesStatusParamsBuilder::default()
+    }
+}
+/// Request parameters for the [`get_delta_mode_status`] operation.
+///
+/// This struct holds all of the inputs you can pass when calling
+/// [`get_delta_mode_status`](#method.get_delta_mode_status).
+#[derive(Clone, Debug, Builder, Default)]
+#[builder(pattern = "owned", build_fn(error = "ParamBuildError"))]
+pub struct GetDeltaModeStatusParams {
+    ///
+    /// The `recv_window` parameter.
+    ///
+    /// This field is **optional.
+    #[builder(setter(into), default)]
+    pub recv_window: Option<i64>,
+}
+
+impl GetDeltaModeStatusParams {
+    /// Create a builder for [`get_delta_mode_status`].
+    ///
+    #[must_use]
+    pub fn builder() -> GetDeltaModeStatusParamsBuilder {
+        GetDeltaModeStatusParamsBuilder::default()
     }
 }
 /// Request parameters for the [`get_portfolio_margin_pro_account_balance`] operation.
@@ -556,6 +587,38 @@ impl RepayFuturesNegativeBalanceParams {
         RepayFuturesNegativeBalanceParamsBuilder::default()
     }
 }
+/// Request parameters for the [`switch_delta_mode`] operation.
+///
+/// This struct holds all of the inputs you can pass when calling
+/// [`switch_delta_mode`](#method.switch_delta_mode).
+#[derive(Clone, Debug, Builder)]
+#[builder(pattern = "owned", build_fn(error = "ParamBuildError"))]
+pub struct SwitchDeltaModeParams {
+    /// `true` to enable Delta mode; `false` to disable Delta mode
+    ///
+    /// This field is **required.
+    #[builder(setter(into))]
+    pub delta_enabled: String,
+    ///
+    /// The `recv_window` parameter.
+    ///
+    /// This field is **optional.
+    #[builder(setter(into), default)]
+    pub recv_window: Option<i64>,
+}
+
+impl SwitchDeltaModeParams {
+    /// Create a builder for [`switch_delta_mode`].
+    ///
+    /// Required parameters:
+    ///
+    /// * `delta_enabled` — `true` to enable Delta mode; `false` to disable Delta mode
+    ///
+    #[must_use]
+    pub fn builder(delta_enabled: String) -> SwitchDeltaModeParamsBuilder {
+        SwitchDeltaModeParamsBuilder::default().delta_enabled(delta_enabled)
+    }
+}
 /// Request parameters for the [`transfer_ldusdt_rwusd_for_portfolio_margin`] operation.
 ///
 /// This struct holds all of the inputs you can pass when calling
@@ -758,6 +821,35 @@ impl AccountApi for AccountApiClient {
         send_request::<models::GetAutoRepayFuturesStatusResponse>(
             &self.configuration,
             "/sapi/v1/portfolio/repay-futures-switch",
+            reqwest::Method::GET,
+            query_params,
+            body_params,
+            if HAS_TIME_UNIT {
+                self.configuration.time_unit
+            } else {
+                None
+            },
+            true,
+        )
+        .await
+    }
+
+    async fn get_delta_mode_status(
+        &self,
+        params: GetDeltaModeStatusParams,
+    ) -> anyhow::Result<RestApiResponse<models::GetDeltaModeStatusResponse>> {
+        let GetDeltaModeStatusParams { recv_window } = params;
+
+        let mut query_params = BTreeMap::new();
+        let body_params = BTreeMap::new();
+
+        if let Some(rw) = recv_window {
+            query_params.insert("recvWindow".to_string(), json!(rw));
+        }
+
+        send_request::<models::GetDeltaModeStatusResponse>(
+            &self.configuration,
+            "/sapi/v1/portfolio/delta-mode",
             reqwest::Method::GET,
             query_params,
             body_params,
@@ -1110,6 +1202,40 @@ impl AccountApi for AccountApiClient {
         .await
     }
 
+    async fn switch_delta_mode(
+        &self,
+        params: SwitchDeltaModeParams,
+    ) -> anyhow::Result<RestApiResponse<models::SwitchDeltaModeResponse>> {
+        let SwitchDeltaModeParams {
+            delta_enabled,
+            recv_window,
+        } = params;
+
+        let mut query_params = BTreeMap::new();
+        let body_params = BTreeMap::new();
+
+        query_params.insert("deltaEnabled".to_string(), json!(delta_enabled));
+
+        if let Some(rw) = recv_window {
+            query_params.insert("recvWindow".to_string(), json!(rw));
+        }
+
+        send_request::<models::SwitchDeltaModeResponse>(
+            &self.configuration,
+            "/sapi/v1/portfolio/delta-mode",
+            reqwest::Method::POST,
+            query_params,
+            body_params,
+            if HAS_TIME_UNIT {
+                self.configuration.time_unit
+            } else {
+                None
+            },
+            true,
+        )
+        .await
+    }
+
     async fn transfer_ldusdt_rwusd_for_portfolio_margin(
         &self,
         params: TransferLdusdtRwusdForPortfolioMarginParams,
@@ -1189,9 +1315,11 @@ mod tests {
             _params: BnbTransferParams,
         ) -> anyhow::Result<RestApiResponse<models::BnbTransferResponse>> {
             if self.force_error {
-                return Err(
-                    ConnectorError::ConnectorClientError("ResponseError".to_string()).into(),
-                );
+                return Err(ConnectorError::ConnectorClientError {
+                    msg: "ResponseError".to_string(),
+                    code: None,
+                }
+                .into());
             }
 
             let resp_json: Value = serde_json::from_str(r#"{"tranId":100000001}"#).unwrap();
@@ -1214,9 +1342,11 @@ mod tests {
             _params: ChangeAutoRepayFuturesStatusParams,
         ) -> anyhow::Result<RestApiResponse<models::ChangeAutoRepayFuturesStatusResponse>> {
             if self.force_error {
-                return Err(
-                    ConnectorError::ConnectorClientError("ResponseError".to_string()).into(),
-                );
+                return Err(ConnectorError::ConnectorClientError {
+                    msg: "ResponseError".to_string(),
+                    code: None,
+                }
+                .into());
             }
 
             let resp_json: Value = serde_json::from_str(r#"{"msg":"success"}"#).unwrap();
@@ -1239,9 +1369,11 @@ mod tests {
             _params: FundAutoCollectionParams,
         ) -> anyhow::Result<RestApiResponse<models::FundAutoCollectionResponse>> {
             if self.force_error {
-                return Err(
-                    ConnectorError::ConnectorClientError("ResponseError".to_string()).into(),
-                );
+                return Err(ConnectorError::ConnectorClientError {
+                    msg: "ResponseError".to_string(),
+                    code: None,
+                }
+                .into());
             }
 
             let resp_json: Value = serde_json::from_str(r#"{"msg":"success"}"#).unwrap();
@@ -1264,9 +1396,11 @@ mod tests {
             _params: FundCollectionByAssetParams,
         ) -> anyhow::Result<RestApiResponse<models::FundCollectionByAssetResponse>> {
             if self.force_error {
-                return Err(
-                    ConnectorError::ConnectorClientError("ResponseError".to_string()).into(),
-                );
+                return Err(ConnectorError::ConnectorClientError {
+                    msg: "ResponseError".to_string(),
+                    code: None,
+                }
+                .into());
             }
 
             let resp_json: Value = serde_json::from_str(r#"{"msg":"success"}"#).unwrap();
@@ -1289,15 +1423,44 @@ mod tests {
             _params: GetAutoRepayFuturesStatusParams,
         ) -> anyhow::Result<RestApiResponse<models::GetAutoRepayFuturesStatusResponse>> {
             if self.force_error {
-                return Err(
-                    ConnectorError::ConnectorClientError("ResponseError".to_string()).into(),
-                );
+                return Err(ConnectorError::ConnectorClientError {
+                    msg: "ResponseError".to_string(),
+                    code: None,
+                }
+                .into());
             }
 
             let resp_json: Value = serde_json::from_str(r#"{"autoRepay":true}"#).unwrap();
             let dummy_response: models::GetAutoRepayFuturesStatusResponse =
                 serde_json::from_value(resp_json.clone())
                     .expect("should parse into models::GetAutoRepayFuturesStatusResponse");
+
+            let dummy = DummyRestApiResponse {
+                inner: Box::new(move || Box::pin(async move { Ok(dummy_response) })),
+                status: 200,
+                headers: HashMap::new(),
+                rate_limits: None,
+            };
+
+            Ok(dummy.into())
+        }
+
+        async fn get_delta_mode_status(
+            &self,
+            _params: GetDeltaModeStatusParams,
+        ) -> anyhow::Result<RestApiResponse<models::GetDeltaModeStatusResponse>> {
+            if self.force_error {
+                return Err(ConnectorError::ConnectorClientError {
+                    msg: "ResponseError".to_string(),
+                    code: None,
+                }
+                .into());
+            }
+
+            let resp_json: Value = serde_json::from_str(r#"{"deltaEnabled":false}"#).unwrap();
+            let dummy_response: models::GetDeltaModeStatusResponse =
+                serde_json::from_value(resp_json.clone())
+                    .expect("should parse into models::GetDeltaModeStatusResponse");
 
             let dummy = DummyRestApiResponse {
                 inner: Box::new(move || Box::pin(async move { Ok(dummy_response) })),
@@ -1316,9 +1479,11 @@ mod tests {
             RestApiResponse<Vec<models::GetPortfolioMarginProAccountBalanceResponseInner>>,
         > {
             if self.force_error {
-                return Err(
-                    ConnectorError::ConnectorClientError("ResponseError".to_string()).into(),
-                );
+                return Err(ConnectorError::ConnectorClientError {
+                    msg: "ResponseError".to_string(),
+                    code: None,
+                }
+                .into());
             }
 
             let resp_json: Value = serde_json::from_str(r#"[{"asset":"BTC","totalWalletBalance":"100","crossMarginAsset":"100","crossMarginBorrowed":"0","crossMarginFree":"100","crossMarginInterest":"0","crossMarginLocked":"0","umWalletBalance":"0","umUnrealizedPNL":"0","cmWalletBalance":"0","cmUnrealizedPNL":"0","updateTime":0,"negativeBalance":"0","optionWalletBalance":"0","optionEquity":"0"}]"#).unwrap();
@@ -1340,9 +1505,11 @@ mod tests {
         ) -> anyhow::Result<RestApiResponse<models::GetPortfolioMarginProAccountInfoResponse>>
         {
             if self.force_error {
-                return Err(
-                    ConnectorError::ConnectorClientError("ResponseError".to_string()).into(),
-                );
+                return Err(ConnectorError::ConnectorClientError {
+                    msg: "ResponseError".to_string(),
+                    code: None,
+                }
+                .into());
             }
 
             let resp_json: Value = serde_json::from_str(r#"{"uniMMR":"5167.92171923","accountEquity":"122607.35137903","actualEquity":"142607.35137903","accountMaintMargin":"23.72469206","accountInitialMargin":"47.44938412","totalAvailableBalance":"122,559.90199491","accountStatus":"NORMAL","accountType":"PM_1"}"#).unwrap();
@@ -1366,9 +1533,11 @@ mod tests {
         ) -> anyhow::Result<RestApiResponse<models::GetPortfolioMarginProSpanAccountInfoResponse>>
         {
             if self.force_error {
-                return Err(
-                    ConnectorError::ConnectorClientError("ResponseError".to_string()).into(),
-                );
+                return Err(ConnectorError::ConnectorClientError {
+                    msg: "ResponseError".to_string(),
+                    code: None,
+                }
+                .into());
             }
 
             let resp_json: Value = serde_json::from_str(r#"{"uniMMR":"5167.92171923","accountEquity":"122607.35137903","actualEquity":"142607.35137903","accountMaintMargin":"23.72469206","riskUnitMMList":[{"asset":"BTC","uniMaintainUsd":"23.72469206"}],"marginMM":"0.00000000","otherMM":"0.00000000","accountStatus":"NORMAL","accountType":"PM_3"}"#).unwrap();
@@ -1394,9 +1563,11 @@ mod tests {
             RestApiResponse<models::GetTransferableEarnAssetBalanceForPortfolioMarginResponse>,
         > {
             if self.force_error {
-                return Err(
-                    ConnectorError::ConnectorClientError("ResponseError".to_string()).into(),
-                );
+                return Err(ConnectorError::ConnectorClientError {
+                    msg: "ResponseError".to_string(),
+                    code: None,
+                }
+                .into());
             }
 
             let resp_json: Value =
@@ -1419,9 +1590,11 @@ mod tests {
         ) -> anyhow::Result<RestApiResponse<models::PortfolioMarginProBankruptcyLoanRepayResponse>>
         {
             if self.force_error {
-                return Err(
-                    ConnectorError::ConnectorClientError("ResponseError".to_string()).into(),
-                );
+                return Err(ConnectorError::ConnectorClientError {
+                    msg: "ResponseError".to_string(),
+                    code: None,
+                }
+                .into());
             }
 
             let resp_json: Value = serde_json::from_str(r#"{"tranId":58203331886213500}"#).unwrap();
@@ -1447,9 +1620,11 @@ mod tests {
             RestApiResponse<models::QueryPortfolioMarginProBankruptcyLoanAmountResponse>,
         > {
             if self.force_error {
-                return Err(
-                    ConnectorError::ConnectorClientError("ResponseError".to_string()).into(),
-                );
+                return Err(ConnectorError::ConnectorClientError {
+                    msg: "ResponseError".to_string(),
+                    code: None,
+                }
+                .into());
             }
 
             let resp_json: Value =
@@ -1476,9 +1651,11 @@ mod tests {
             RestApiResponse<models::QueryPortfolioMarginProBankruptcyLoanRepayHistoryResponse>,
         > {
             if self.force_error {
-                return Err(
-                    ConnectorError::ConnectorClientError("ResponseError".to_string()).into(),
-                );
+                return Err(ConnectorError::ConnectorClientError {
+                    msg: "ResponseError".to_string(),
+                    code: None,
+                }
+                .into());
             }
 
             let resp_json: Value = serde_json::from_str(r#"{"total":3,"rows":[{"asset":"USDT","amount":"404.80294503","repayTime":1731336427804},{"asset":"USDT","amount":"4620.41204574","repayTime":1726125090016}]}"#).unwrap();
@@ -1503,9 +1680,11 @@ mod tests {
             >,
         > {
             if self.force_error {
-                return Err(
-                    ConnectorError::ConnectorClientError("ResponseError".to_string()).into(),
-                );
+                return Err(ConnectorError::ConnectorClientError {
+                    msg: "ResponseError".to_string(),
+                    code: None,
+                }
+                .into());
             }
 
             let resp_json: Value = serde_json::from_str(r#"[{"asset":"USDT","interest":"24.4440","interestAccruedTime":1670227200000,"interestRate":"0.0001164","principal":"210000"}]"#).unwrap();
@@ -1526,9 +1705,11 @@ mod tests {
             _params: RepayFuturesNegativeBalanceParams,
         ) -> anyhow::Result<RestApiResponse<models::RepayFuturesNegativeBalanceResponse>> {
             if self.force_error {
-                return Err(
-                    ConnectorError::ConnectorClientError("ResponseError".to_string()).into(),
-                );
+                return Err(ConnectorError::ConnectorClientError {
+                    msg: "ResponseError".to_string(),
+                    code: None,
+                }
+                .into());
             }
 
             let resp_json: Value = serde_json::from_str(r#"{"msg":"success"}"#).unwrap();
@@ -1546,15 +1727,44 @@ mod tests {
             Ok(dummy.into())
         }
 
+        async fn switch_delta_mode(
+            &self,
+            _params: SwitchDeltaModeParams,
+        ) -> anyhow::Result<RestApiResponse<models::SwitchDeltaModeResponse>> {
+            if self.force_error {
+                return Err(ConnectorError::ConnectorClientError {
+                    msg: "ResponseError".to_string(),
+                    code: None,
+                }
+                .into());
+            }
+
+            let resp_json: Value = serde_json::from_str(r#"{"msg":"success"}"#).unwrap();
+            let dummy_response: models::SwitchDeltaModeResponse =
+                serde_json::from_value(resp_json.clone())
+                    .expect("should parse into models::SwitchDeltaModeResponse");
+
+            let dummy = DummyRestApiResponse {
+                inner: Box::new(move || Box::pin(async move { Ok(dummy_response) })),
+                status: 200,
+                headers: HashMap::new(),
+                rate_limits: None,
+            };
+
+            Ok(dummy.into())
+        }
+
         async fn transfer_ldusdt_rwusd_for_portfolio_margin(
             &self,
             _params: TransferLdusdtRwusdForPortfolioMarginParams,
         ) -> anyhow::Result<RestApiResponse<models::TransferLdusdtRwusdForPortfolioMarginResponse>>
         {
             if self.force_error {
-                return Err(
-                    ConnectorError::ConnectorClientError("ResponseError".to_string()).into(),
-                );
+                return Err(ConnectorError::ConnectorClientError {
+                    msg: "ResponseError".to_string(),
+                    code: None,
+                }
+                .into());
             }
 
             let resp_json: Value = serde_json::from_str(r#"{"msg":"success"}"#).unwrap();
@@ -1893,6 +2103,69 @@ mod tests {
             let params = GetAutoRepayFuturesStatusParams::builder().build().unwrap();
 
             match client.get_auto_repay_futures_status(params).await {
+                Ok(_) => panic!("Expected an error"),
+                Err(err) => {
+                    assert_eq!(err.to_string(), "Connector client error: ResponseError");
+                }
+            }
+        });
+    }
+
+    #[test]
+    fn get_delta_mode_status_required_params_success() {
+        TOKIO_SHARED_RT.block_on(async {
+            let client = MockAccountApiClient { force_error: false };
+
+            let params = GetDeltaModeStatusParams::builder().build().unwrap();
+
+            let resp_json: Value = serde_json::from_str(r#"{"deltaEnabled":false}"#).unwrap();
+            let expected_response: models::GetDeltaModeStatusResponse =
+                serde_json::from_value(resp_json.clone())
+                    .expect("should parse into models::GetDeltaModeStatusResponse");
+
+            let resp = client
+                .get_delta_mode_status(params)
+                .await
+                .expect("Expected a response");
+            let data_future = resp.data();
+            let actual_response = data_future.await.unwrap();
+            assert_eq!(actual_response, expected_response);
+        });
+    }
+
+    #[test]
+    fn get_delta_mode_status_optional_params_success() {
+        TOKIO_SHARED_RT.block_on(async {
+            let client = MockAccountApiClient { force_error: false };
+
+            let params = GetDeltaModeStatusParams::builder()
+                .recv_window(5000)
+                .build()
+                .unwrap();
+
+            let resp_json: Value = serde_json::from_str(r#"{"deltaEnabled":false}"#).unwrap();
+            let expected_response: models::GetDeltaModeStatusResponse =
+                serde_json::from_value(resp_json.clone())
+                    .expect("should parse into models::GetDeltaModeStatusResponse");
+
+            let resp = client
+                .get_delta_mode_status(params)
+                .await
+                .expect("Expected a response");
+            let data_future = resp.data();
+            let actual_response = data_future.await.unwrap();
+            assert_eq!(actual_response, expected_response);
+        });
+    }
+
+    #[test]
+    fn get_delta_mode_status_response_error() {
+        TOKIO_SHARED_RT.block_on(async {
+            let client = MockAccountApiClient { force_error: true };
+
+            let params = GetDeltaModeStatusParams::builder().build().unwrap();
+
+            match client.get_delta_mode_status(params).await {
                 Ok(_) => panic!("Expected an error"),
                 Err(err) => {
                     assert_eq!(err.to_string(), "Connector client error: ResponseError");
@@ -2438,6 +2711,73 @@ mod tests {
                 .unwrap();
 
             match client.repay_futures_negative_balance(params).await {
+                Ok(_) => panic!("Expected an error"),
+                Err(err) => {
+                    assert_eq!(err.to_string(), "Connector client error: ResponseError");
+                }
+            }
+        });
+    }
+
+    #[test]
+    fn switch_delta_mode_required_params_success() {
+        TOKIO_SHARED_RT.block_on(async {
+            let client = MockAccountApiClient { force_error: false };
+
+            let params = SwitchDeltaModeParams::builder("delta_enabled_example".to_string())
+                .build()
+                .unwrap();
+
+            let resp_json: Value = serde_json::from_str(r#"{"msg":"success"}"#).unwrap();
+            let expected_response: models::SwitchDeltaModeResponse =
+                serde_json::from_value(resp_json.clone())
+                    .expect("should parse into models::SwitchDeltaModeResponse");
+
+            let resp = client
+                .switch_delta_mode(params)
+                .await
+                .expect("Expected a response");
+            let data_future = resp.data();
+            let actual_response = data_future.await.unwrap();
+            assert_eq!(actual_response, expected_response);
+        });
+    }
+
+    #[test]
+    fn switch_delta_mode_optional_params_success() {
+        TOKIO_SHARED_RT.block_on(async {
+            let client = MockAccountApiClient { force_error: false };
+
+            let params = SwitchDeltaModeParams::builder("delta_enabled_example".to_string())
+                .recv_window(5000)
+                .build()
+                .unwrap();
+
+            let resp_json: Value = serde_json::from_str(r#"{"msg":"success"}"#).unwrap();
+            let expected_response: models::SwitchDeltaModeResponse =
+                serde_json::from_value(resp_json.clone())
+                    .expect("should parse into models::SwitchDeltaModeResponse");
+
+            let resp = client
+                .switch_delta_mode(params)
+                .await
+                .expect("Expected a response");
+            let data_future = resp.data();
+            let actual_response = data_future.await.unwrap();
+            assert_eq!(actual_response, expected_response);
+        });
+    }
+
+    #[test]
+    fn switch_delta_mode_response_error() {
+        TOKIO_SHARED_RT.block_on(async {
+            let client = MockAccountApiClient { force_error: true };
+
+            let params = SwitchDeltaModeParams::builder("delta_enabled_example".to_string())
+                .build()
+                .unwrap();
+
+            match client.switch_delta_mode(params).await {
                 Ok(_) => panic!("Expected an error"),
                 Err(err) => {
                     assert_eq!(err.to_string(), "Connector client error: ResponseError");

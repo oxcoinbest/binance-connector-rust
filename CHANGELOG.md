@@ -1,5 +1,190 @@
 # Changelog
 
+## 37.0.0 - 2026-01-20
+
+### Added (1)
+
+- Expose `code` on REST API response errors.
+
+**Alpha**
+
+- Initial release.
+
+**Derivatives Trading Portfolio Margin**
+
+### Changed (1)
+
+#### REST API
+
+- Modified response for `query_current_cm_open_order()` (`GET /papi/v1/cm/openOrder`):
+  - type `object` → `array`
+  - property `side` deleted
+  - property `reduceOnly` deleted
+  - property `orderId` deleted
+  - property `updateTime` deleted
+  - property `status` deleted
+  - property `avgPrice` deleted
+  - property `clientOrderId` deleted
+  - property `type` deleted
+  - property `time` deleted
+  - property `cumBase` deleted
+  - property `executedQty` deleted
+  - property `price` deleted
+  - property `symbol` deleted
+  - property `positionSide` deleted
+  - property `origQty` deleted
+  - property `origType` deleted
+  - property `pair` deleted
+  - property `timeInForce` deleted
+
+**Mining**
+
+### Changed (2)
+
+- Deleted parameter `userName`
+  - affected methods:
+    - `hashrate_resale_detail()` (`GET /sapi/v1/mining/hash-transfer/profit/details`)
+- Modified response for `hashrate_resale_list()` (`GET /sapi/v1/mining/hash-transfer/config/details/list`):
+  - `data`.`configDetails`.items: property `type` added
+  - `data`.`configDetails`.items: item property `type` added
+
+**Simple Earn**
+
+### Changed (1)
+
+- Modified response for `get_bfusd_quota_details()` (`GET /sapi/v1/bfusd/quota`):
+  - property `subscribeEnable` deleted
+  - property `redeemEnable` deleted
+
+**Vip Loan**
+
+### Changed (1)
+
+- Modified response for `get_vip_loan_ongoing_orders()` (`GET /sapi/v1/loan/vip/ongoing/orders`):
+  - `rows`.items: property `loanRate` added
+  - `rows`.items: item property `loanRate` added
+
+**Wallet**
+
+### Changed (4)
+
+- Added parameter `accountType`
+  - affected methods:
+    - `dustlog()` (`GET /sapi/v1/asset/dribblet`)
+- Added parameter `asset`
+  - affected methods:
+    - `asset_detail()` (`GET /sapi/v1/asset/assetDetail`)
+- Modified response for `withdraw_history_v1()` (`GET /sapi/v1/localentity/withdraw/history`):
+  - items: property `addressTag` deleted
+  - items: item property `addressTag` deleted
+
+- Modified response for `withdraw_history_v2()` (`GET /sapi/v2/localentity/withdraw/history`):
+  - items: property `addressTag` deleted
+  - items: item property `addressTag` deleted
+
+## 36.0.0 - 2026-01-13
+
+**Crypto Loan**
+
+### Added (1)
+
+- `get_flexible_loan_interest_rate_history()` (`GET /sapi/v2/loan/interestRateHistory`)
+
+**Derivatives Trading Coin Futures**
+
+### Added (1)
+
+#### REST API
+
+- `place_multiple_orders()` (`POST /dapi/v1/batchOrders`)
+
+**Derivatives Trading Options**
+
+- Update REST API and Websocket Streams to match latest API changes.
+
+**Derivatives Trading Portfolio Margin Pro**
+
+### Added (2)
+
+#### REST API
+
+- `get_delta_mode_status()` (`GET /sapi/v1/portfolio/delta-mode`)
+- `switch_delta_mode()` (`POST /sapi/v1/portfolio/delta-mode`)
+
+**Derivatives Trading Usds Futures**
+
+### Changed (12)
+
+#### REST API
+
+- Added parameter `algo_id`
+  - affected methods:
+    - `cancel_algo_order()` (`DELETE /fapi/v1/algoOrder`)
+- Added parameter `client_algo_id`
+  - affected methods:
+    - `cancel_algo_order()` (`DELETE /fapi/v1/algoOrder`)
+- Deleted parameter `algo_id`
+  - affected methods:
+    - `cancel_algo_order()` (`DELETE /fapi/v1/algoOrder`)
+- Deleted parameter `client_algo_id`
+  - affected methods:
+    - `cancel_algo_order()` (`DELETE /fapi/v1/algoOrder`)
+- Modified response for `symbol_configuration()` (`GET /fapi/v1/symbolConfig`):
+  - items.`is_auto_add_margin`: type `string` → `boolean`
+  - items.`is_auto_add_margin`: type `string` → `boolean`
+
+#### WebSocket API
+
+- Added parameter `algo_id`
+  - affected methods:
+    - `cancel_algo_order()` (`algoOrder.cancel` method)
+- Added parameter `client_algo_id`
+  - affected methods:
+    - `cancel_algo_order()` (`algoOrder.cancel` method)
+- Deleted parameter `algo_id`
+  - affected methods:
+    - `cancel_algo_order()` (`algoOrder.cancel` method)
+- Deleted parameter `client_algo_id`
+  - affected methods:
+    - `cancel_algo_order()` (`algoOrder.cancel` method)
+- Added parameter `activate_price`
+  - affected methods:
+    - `new_algo_order()` (`algoOrder.place` method)
+- Deleted parameter `activation_price`
+  - affected methods:
+    - `new_algo_order()` (`algoOrder.place` method)
+
+#### WebSocket Streams
+
+- Modified response for `aggregate_trade_streams()` (`<symbol>@aggTrade` stream):
+  - property `nq` added
+
+**Dual Investment**
+
+### Changed (1)
+
+- Update documentation URLs.
+
+**VIP Loan**
+
+### Added (2)
+
+- `get_vip_loan_accrued_interest()` (`GET /sapi/v1/loan/vip/accruedInterest`)
+- `get_vip_loan_interest_rate_history()` (`GET /sapi/v1/loan/vip/interestRateHistory`)
+
+**Wallet**
+
+### Added (1)
+
+- `submit_deposit_questionnaire_v2()` (`PUT /sapi/v2/localentity/deposit/provide-info`)
+
+### Changed (1)
+
+- Modified parameter `deposit_id`:
+  - type `string` → `integer`
+  - affected methods:
+    - `submit_deposit_questionnaire()` (`PUT /sapi/v1/localentity/broker/deposit/provide-info`)
+
 ## 35.0.0 - 2025-12-19
 
 ### Changed (1)

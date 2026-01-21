@@ -59,6 +59,10 @@ pub trait FlexibleRateApi: Send + Sync {
         &self,
         params: GetFlexibleLoanCollateralAssetsDataParams,
     ) -> anyhow::Result<RestApiResponse<models::GetFlexibleLoanCollateralAssetsDataResponse>>;
+    async fn get_flexible_loan_interest_rate_history(
+        &self,
+        params: GetFlexibleLoanInterestRateHistoryParams,
+    ) -> anyhow::Result<RestApiResponse<models::GetFlexibleLoanInterestRateHistoryResponse>>;
     async fn get_flexible_loan_liquidation_history(
         &self,
         params: GetFlexibleLoanLiquidationHistoryParams,
@@ -428,6 +432,67 @@ impl GetFlexibleLoanCollateralAssetsDataParams {
     #[must_use]
     pub fn builder() -> GetFlexibleLoanCollateralAssetsDataParamsBuilder {
         GetFlexibleLoanCollateralAssetsDataParamsBuilder::default()
+    }
+}
+/// Request parameters for the [`get_flexible_loan_interest_rate_history`] operation.
+///
+/// This struct holds all of the inputs you can pass when calling
+/// [`get_flexible_loan_interest_rate_history`](#method.get_flexible_loan_interest_rate_history).
+#[derive(Clone, Debug, Builder)]
+#[builder(pattern = "owned", build_fn(error = "ParamBuildError"))]
+pub struct GetFlexibleLoanInterestRateHistoryParams {
+    ///
+    /// The `coin` parameter.
+    ///
+    /// This field is **required.
+    #[builder(setter(into))]
+    pub coin: String,
+    ///
+    /// The `recv_window` parameter.
+    ///
+    /// This field is **required.
+    #[builder(setter(into))]
+    pub recv_window: i64,
+    ///
+    /// The `start_time` parameter.
+    ///
+    /// This field is **optional.
+    #[builder(setter(into), default)]
+    pub start_time: Option<i64>,
+    ///
+    /// The `end_time` parameter.
+    ///
+    /// This field is **optional.
+    #[builder(setter(into), default)]
+    pub end_time: Option<i64>,
+    /// Current querying page. Start from 1; default: 1; max: 1000
+    ///
+    /// This field is **optional.
+    #[builder(setter(into), default)]
+    pub current: Option<i64>,
+    /// Default: 10; max: 100
+    ///
+    /// This field is **optional.
+    #[builder(setter(into), default)]
+    pub limit: Option<i64>,
+}
+
+impl GetFlexibleLoanInterestRateHistoryParams {
+    /// Create a builder for [`get_flexible_loan_interest_rate_history`].
+    ///
+    /// Required parameters:
+    ///
+    /// * `coin` — String
+    /// * `recv_window` — i64
+    ///
+    #[must_use]
+    pub fn builder(
+        coin: String,
+        recv_window: i64,
+    ) -> GetFlexibleLoanInterestRateHistoryParamsBuilder {
+        GetFlexibleLoanInterestRateHistoryParamsBuilder::default()
+            .coin(coin)
+            .recv_window(recv_window)
     }
 }
 /// Request parameters for the [`get_flexible_loan_liquidation_history`] operation.
@@ -964,6 +1029,58 @@ impl FlexibleRateApi for FlexibleRateApiClient {
         .await
     }
 
+    async fn get_flexible_loan_interest_rate_history(
+        &self,
+        params: GetFlexibleLoanInterestRateHistoryParams,
+    ) -> anyhow::Result<RestApiResponse<models::GetFlexibleLoanInterestRateHistoryResponse>> {
+        let GetFlexibleLoanInterestRateHistoryParams {
+            coin,
+            recv_window,
+            start_time,
+            end_time,
+            current,
+            limit,
+        } = params;
+
+        let mut query_params = BTreeMap::new();
+        let body_params = BTreeMap::new();
+
+        query_params.insert("coin".to_string(), json!(coin));
+
+        if let Some(rw) = start_time {
+            query_params.insert("startTime".to_string(), json!(rw));
+        }
+
+        if let Some(rw) = end_time {
+            query_params.insert("endTime".to_string(), json!(rw));
+        }
+
+        if let Some(rw) = current {
+            query_params.insert("current".to_string(), json!(rw));
+        }
+
+        if let Some(rw) = limit {
+            query_params.insert("limit".to_string(), json!(rw));
+        }
+
+        query_params.insert("recvWindow".to_string(), json!(recv_window));
+
+        send_request::<models::GetFlexibleLoanInterestRateHistoryResponse>(
+            &self.configuration,
+            "/sapi/v2/loan/interestRateHistory",
+            reqwest::Method::GET,
+            query_params,
+            body_params,
+            if HAS_TIME_UNIT {
+                self.configuration.time_unit
+            } else {
+                None
+            },
+            true,
+        )
+        .await
+    }
+
     async fn get_flexible_loan_liquidation_history(
         &self,
         params: GetFlexibleLoanLiquidationHistoryParams,
@@ -1236,9 +1353,11 @@ mod tests {
             _params: CheckCollateralRepayRateParams,
         ) -> anyhow::Result<RestApiResponse<models::CheckCollateralRepayRateResponse>> {
             if self.force_error {
-                return Err(
-                    ConnectorError::ConnectorClientError("ResponseError".to_string()).into(),
-                );
+                return Err(ConnectorError::ConnectorClientError {
+                    msg: "ResponseError".to_string(),
+                    code: None,
+                }
+                .into());
             }
 
             let resp_json: Value = serde_json::from_str(
@@ -1264,9 +1383,11 @@ mod tests {
             _params: FlexibleLoanAdjustLtvParams,
         ) -> anyhow::Result<RestApiResponse<models::FlexibleLoanAdjustLtvResponse>> {
             if self.force_error {
-                return Err(
-                    ConnectorError::ConnectorClientError("ResponseError".to_string()).into(),
-                );
+                return Err(ConnectorError::ConnectorClientError {
+                    msg: "ResponseError".to_string(),
+                    code: None,
+                }
+                .into());
             }
 
             let resp_json: Value = serde_json::from_str(r#"{"loanCoin":"BUSD","collateralCoin":"BNB","direction":"ADDITIONAL","adjustmentAmount":"5.235","currentLTV":"0.52","status":"Succeeds"}"#).unwrap();
@@ -1289,9 +1410,11 @@ mod tests {
             _params: FlexibleLoanBorrowParams,
         ) -> anyhow::Result<RestApiResponse<models::FlexibleLoanBorrowResponse>> {
             if self.force_error {
-                return Err(
-                    ConnectorError::ConnectorClientError("ResponseError".to_string()).into(),
-                );
+                return Err(ConnectorError::ConnectorClientError {
+                    msg: "ResponseError".to_string(),
+                    code: None,
+                }
+                .into());
             }
 
             let resp_json: Value = serde_json::from_str(r#"{"loanCoin":"BUSD","loanAmount":"100.5","collateralCoin":"BNB","collateralAmount":"50.5","status":"Succeeds"}"#).unwrap();
@@ -1314,9 +1437,11 @@ mod tests {
             _params: FlexibleLoanRepayParams,
         ) -> anyhow::Result<RestApiResponse<models::FlexibleLoanRepayResponse>> {
             if self.force_error {
-                return Err(
-                    ConnectorError::ConnectorClientError("ResponseError".to_string()).into(),
-                );
+                return Err(ConnectorError::ConnectorClientError {
+                    msg: "ResponseError".to_string(),
+                    code: None,
+                }
+                .into());
             }
 
             let resp_json: Value = serde_json::from_str(r#"{"loanCoin":"BUSD","collateralCoin":"BNB","remainingDebt":"100.5","remainingCollateral":"5.253","fullRepayment":false,"currentLTV":"0.25","repayStatus":"REPAID"}"#).unwrap();
@@ -1339,9 +1464,11 @@ mod tests {
             _params: GetFlexibleLoanAssetsDataParams,
         ) -> anyhow::Result<RestApiResponse<models::GetFlexibleLoanAssetsDataResponse>> {
             if self.force_error {
-                return Err(
-                    ConnectorError::ConnectorClientError("ResponseError".to_string()).into(),
-                );
+                return Err(ConnectorError::ConnectorClientError {
+                    msg: "ResponseError".to_string(),
+                    code: None,
+                }
+                .into());
             }
 
             let resp_json: Value = serde_json::from_str(r#"{"rows":[{"loanCoin":"BUSD","flexibleInterestRate":"0.00000491","flexibleMinLimit":"100","flexibleMaxLimit":"1000000"}],"total":1}"#).unwrap();
@@ -1364,9 +1491,11 @@ mod tests {
             _params: GetFlexibleLoanBorrowHistoryParams,
         ) -> anyhow::Result<RestApiResponse<models::GetFlexibleLoanBorrowHistoryResponse>> {
             if self.force_error {
-                return Err(
-                    ConnectorError::ConnectorClientError("ResponseError".to_string()).into(),
-                );
+                return Err(ConnectorError::ConnectorClientError {
+                    msg: "ResponseError".to_string(),
+                    code: None,
+                }
+                .into());
             }
 
             let resp_json: Value = serde_json::from_str(r#"{"rows":[{"loanCoin":"BUSD","initialLoanAmount":"10000","collateralCoin":"BNB","initialCollateralAmount":"49.27565492","borrowTime":1575018510000,"status":"SUCCESS"}],"total":1}"#).unwrap();
@@ -1390,9 +1519,11 @@ mod tests {
         ) -> anyhow::Result<RestApiResponse<models::GetFlexibleLoanCollateralAssetsDataResponse>>
         {
             if self.force_error {
-                return Err(
-                    ConnectorError::ConnectorClientError("ResponseError".to_string()).into(),
-                );
+                return Err(ConnectorError::ConnectorClientError {
+                    msg: "ResponseError".to_string(),
+                    code: None,
+                }
+                .into());
             }
 
             let resp_json: Value = serde_json::from_str(r#"{"rows":[{"collateralCoin":"BNB","initialLTV":"0.65","marginCallLTV":"0.75","liquidationLTV":"0.83","maxLimit":"1000000"}],"total":1}"#).unwrap();
@@ -1411,15 +1542,45 @@ mod tests {
             Ok(dummy.into())
         }
 
+        async fn get_flexible_loan_interest_rate_history(
+            &self,
+            _params: GetFlexibleLoanInterestRateHistoryParams,
+        ) -> anyhow::Result<RestApiResponse<models::GetFlexibleLoanInterestRateHistoryResponse>>
+        {
+            if self.force_error {
+                return Err(ConnectorError::ConnectorClientError {
+                    msg: "ResponseError".to_string(),
+                    code: None,
+                }
+                .into());
+            }
+
+            let resp_json: Value = serde_json::from_str(r#"{"rows":[{"coin":"USDT","annualizedInterestRate":"0.0647","time":1575018510000},{"coin":"USDT","annualizedInterestRate":"0.0647","time":1575018510000}],"total":2}"#).unwrap();
+            let dummy_response: models::GetFlexibleLoanInterestRateHistoryResponse =
+                serde_json::from_value(resp_json.clone())
+                    .expect("should parse into models::GetFlexibleLoanInterestRateHistoryResponse");
+
+            let dummy = DummyRestApiResponse {
+                inner: Box::new(move || Box::pin(async move { Ok(dummy_response) })),
+                status: 200,
+                headers: HashMap::new(),
+                rate_limits: None,
+            };
+
+            Ok(dummy.into())
+        }
+
         async fn get_flexible_loan_liquidation_history(
             &self,
             _params: GetFlexibleLoanLiquidationHistoryParams,
         ) -> anyhow::Result<RestApiResponse<models::GetFlexibleLoanLiquidationHistoryResponse>>
         {
             if self.force_error {
-                return Err(
-                    ConnectorError::ConnectorClientError("ResponseError".to_string()).into(),
-                );
+                return Err(ConnectorError::ConnectorClientError {
+                    msg: "ResponseError".to_string(),
+                    code: None,
+                }
+                .into());
             }
 
             let resp_json: Value = serde_json::from_str(r#"{"rows":[{"loanCoin":"BUSD","liquidationDebt":"10000","collateralCoin":"BNB","liquidationCollateralAmount":"123","returnCollateralAmount":"0.2","liquidationFee":"1.2","liquidationStartingPrice":"49.27565492","liquidationStartingTime":1575018510000,"status":"Liquidated"}],"total":1}"#).unwrap();
@@ -1443,9 +1604,11 @@ mod tests {
         ) -> anyhow::Result<RestApiResponse<models::GetFlexibleLoanLtvAdjustmentHistoryResponse>>
         {
             if self.force_error {
-                return Err(
-                    ConnectorError::ConnectorClientError("ResponseError".to_string()).into(),
-                );
+                return Err(ConnectorError::ConnectorClientError {
+                    msg: "ResponseError".to_string(),
+                    code: None,
+                }
+                .into());
             }
 
             let resp_json: Value = serde_json::from_str(r#"{"rows":[{"loanCoin":"BUSD","collateralCoin":"BNB","direction":"ADDITIONAL","collateralAmount":"5.235","preLTV":"0.78","afterLTV":"0.56","adjustTime":1575018510000}],"total":1}"#).unwrap();
@@ -1469,9 +1632,11 @@ mod tests {
             _params: GetFlexibleLoanOngoingOrdersParams,
         ) -> anyhow::Result<RestApiResponse<models::GetFlexibleLoanOngoingOrdersResponse>> {
             if self.force_error {
-                return Err(
-                    ConnectorError::ConnectorClientError("ResponseError".to_string()).into(),
-                );
+                return Err(ConnectorError::ConnectorClientError {
+                    msg: "ResponseError".to_string(),
+                    code: None,
+                }
+                .into());
             }
 
             let resp_json: Value = serde_json::from_str(r#"{"rows":[{"loanCoin":"BUSD","totalDebt":"10000","collateralCoin":"BNB","collateralAmount":"49.27565492","currentLTV":"0.57"}],"total":1}"#).unwrap();
@@ -1495,9 +1660,11 @@ mod tests {
         ) -> anyhow::Result<RestApiResponse<models::GetFlexibleLoanRepaymentHistoryResponse>>
         {
             if self.force_error {
-                return Err(
-                    ConnectorError::ConnectorClientError("ResponseError".to_string()).into(),
-                );
+                return Err(ConnectorError::ConnectorClientError {
+                    msg: "ResponseError".to_string(),
+                    code: None,
+                }
+                .into());
             }
 
             let resp_json: Value = serde_json::from_str(r#"{"rows":[{"loanCoin":"BUSD","repayAmount":"10000","collateralCoin":"BNB","collateralReturn":"49.27565492","repayStatus":"REPAID","repayTime":1575018510000}],"total":1}"#).unwrap();
@@ -1915,6 +2082,59 @@ mod tests {
                 .get_flexible_loan_collateral_assets_data(params)
                 .await
             {
+                Ok(_) => panic!("Expected an error"),
+                Err(err) => {
+                    assert_eq!(err.to_string(), "Connector client error: ResponseError");
+                }
+            }
+        });
+    }
+
+    #[test]
+    fn get_flexible_loan_interest_rate_history_required_params_success() {
+        TOKIO_SHARED_RT.block_on(async {
+            let client = MockFlexibleRateApiClient { force_error: false };
+
+            let params = GetFlexibleLoanInterestRateHistoryParams::builder("coin_example".to_string(),5000,).build().unwrap();
+
+            let resp_json: Value = serde_json::from_str(r#"{"rows":[{"coin":"USDT","annualizedInterestRate":"0.0647","time":1575018510000},{"coin":"USDT","annualizedInterestRate":"0.0647","time":1575018510000}],"total":2}"#).unwrap();
+            let expected_response : models::GetFlexibleLoanInterestRateHistoryResponse = serde_json::from_value(resp_json.clone()).expect("should parse into models::GetFlexibleLoanInterestRateHistoryResponse");
+
+            let resp = client.get_flexible_loan_interest_rate_history(params).await.expect("Expected a response");
+            let data_future = resp.data();
+            let actual_response = data_future.await.unwrap();
+            assert_eq!(actual_response, expected_response);
+        });
+    }
+
+    #[test]
+    fn get_flexible_loan_interest_rate_history_optional_params_success() {
+        TOKIO_SHARED_RT.block_on(async {
+            let client = MockFlexibleRateApiClient { force_error: false };
+
+            let params = GetFlexibleLoanInterestRateHistoryParams::builder("coin_example".to_string(),5000,).start_time(1623319461670).end_time(1641782889000).current(1).limit(10).build().unwrap();
+
+            let resp_json: Value = serde_json::from_str(r#"{"rows":[{"coin":"USDT","annualizedInterestRate":"0.0647","time":1575018510000},{"coin":"USDT","annualizedInterestRate":"0.0647","time":1575018510000}],"total":2}"#).unwrap();
+            let expected_response : models::GetFlexibleLoanInterestRateHistoryResponse = serde_json::from_value(resp_json.clone()).expect("should parse into models::GetFlexibleLoanInterestRateHistoryResponse");
+
+            let resp = client.get_flexible_loan_interest_rate_history(params).await.expect("Expected a response");
+            let data_future = resp.data();
+            let actual_response = data_future.await.unwrap();
+            assert_eq!(actual_response, expected_response);
+        });
+    }
+
+    #[test]
+    fn get_flexible_loan_interest_rate_history_response_error() {
+        TOKIO_SHARED_RT.block_on(async {
+            let client = MockFlexibleRateApiClient { force_error: true };
+
+            let params =
+                GetFlexibleLoanInterestRateHistoryParams::builder("coin_example".to_string(), 5000)
+                    .build()
+                    .unwrap();
+
+            match client.get_flexible_loan_interest_rate_history(params).await {
                 Ok(_) => panic!("Expected an error"),
                 Err(err) => {
                     assert_eq!(err.to_string(), "Connector client error: ResponseError");
