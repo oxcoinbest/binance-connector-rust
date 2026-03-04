@@ -4,9 +4,7 @@ use tracing::info;
 
 use binance_sdk::config::ConfigurationRestApi;
 use binance_sdk::logger;
-use binance_sdk::sub_account::{
-    SubAccountRestApi, rest_api::GetSummaryOfSubAccountsFuturesAccountParams,
-};
+use binance_sdk::margin_trading::MarginTradingRestApi;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -23,21 +21,18 @@ async fn main() -> Result<()> {
         .api_secret(api_secret)
         .build()?;
 
-    // Create the SubAccount REST API client
-    let rest_client = SubAccountRestApi::production(rest_conf);
-
-    // Setup the API parameters
-    let params = GetSummaryOfSubAccountsFuturesAccountParams::builder(789, 789).build()?;
+    // Create the MarginTrading REST API client
+    let rest_client = MarginTradingRestApi::production(rest_conf);
 
     // Make the API call
     let response = rest_client
-        .get_summary_of_sub_accounts_futures_account(params)
+        .get_margin_asset_risk_based_liquidation_ratio()
         .await
-        .context("get_summary_of_sub_accounts_futures_account request failed")?;
+        .context("get_margin_asset_risk_based_liquidation_ratio request failed")?;
 
-    info!(?response.rate_limits, "get_summary_of_sub_accounts_futures_account rate limits");
+    info!(?response.rate_limits, "get_margin_asset_risk_based_liquidation_ratio rate limits");
     let data = response.data().await?;
-    info!(?data, "get_summary_of_sub_accounts_futures_account data");
+    info!(?data, "get_margin_asset_risk_based_liquidation_ratio data");
 
     Ok(())
 }

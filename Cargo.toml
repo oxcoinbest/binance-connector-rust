@@ -1,6 +1,6 @@
 [package]
 name = "binance-sdk"
-version = "37.0.0"
+version = "41.0.0"
 authors = [ "Binance" ]
 edition = "2024"
 resolver = "3"
@@ -64,16 +64,22 @@ hmac = "^0.12"
 sha2 = "^0.10"
 hex = "^0.4"
 base64 = "^0.22"
-openssl = "^0.10"
 flate2 = "^1.0"
 derive_builder = "^0.10"
-tokio-native-tls = "^0.3"
 tokio-stream = "0.1"
 rand = "0.8"
 futures = "0.3"
 http = "1"
 tracing = "0.1"
 once_cell = "1.21"
+
+  [dependencies.openssl]
+  version = "^0.10"
+  optional = true
+
+  [dependencies.tokio-native-tls]
+  version = "^0.3"
+  optional = true
 
   [dependencies.serde]
   version = "^1.0"
@@ -123,7 +129,17 @@ futures-util = "0.3"
 tokio-test = "0.4"
 
 [features]
-default = [ ]
+default = [ "openssl-tls" ]
+openssl-tls = [
+  "dep:openssl",
+  "dep:tokio-native-tls",
+  "reqwest/default-tls",
+  "tokio-tungstenite/native-tls"
+]
+rustls-tls = [
+  "reqwest/rustls-tls",
+  "tokio-tungstenite/rustls-tls-native-roots"
+]
 algo = [ ]
 alpha = [ ]
 c2c = [ ]
@@ -2618,6 +2634,16 @@ path = "examples/margin_trading/rest_api/market_data_api/get_list_schedule.rs"
 required-features = [ "margin_trading" ]
 
 [[example]]
+name = "margin_trading_rest_api_market_data_api_get_margin_asset_risk_based_liquidation_ratio"
+path = "examples/margin_trading/rest_api/market_data_api/get_margin_asset_risk_based_liquidation_ratio.rs"
+required-features = [ "margin_trading" ]
+
+[[example]]
+name = "margin_trading_rest_api_market_data_api_get_margin_restricted_assets"
+path = "examples/margin_trading/rest_api/market_data_api/get_margin_restricted_assets.rs"
+required-features = [ "margin_trading" ]
+
+[[example]]
 name = "margin_trading_rest_api_market_data_api_query_isolated_margin_tier_data"
 path = "examples/margin_trading/rest_api/market_data_api/query_isolated_margin_tier_data.rs"
 required-features = [ "margin_trading" ]
@@ -2760,6 +2786,11 @@ required-features = [ "margin_trading" ]
 [[example]]
 name = "margin_trading_rest_api_trade_api_query_margin_accounts_trade_list"
 path = "examples/margin_trading/rest_api/trade_api/query_margin_accounts_trade_list.rs"
+required-features = [ "margin_trading" ]
+
+[[example]]
+name = "margin_trading_rest_api_trade_api_query_prevented_matches"
+path = "examples/margin_trading/rest_api/trade_api/query_prevented_matches.rs"
 required-features = [ "margin_trading" ]
 
 [[example]]

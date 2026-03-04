@@ -57,6 +57,14 @@ pub trait MarketDataApi: Send + Sync {
         &self,
         params: GetListScheduleParams,
     ) -> anyhow::Result<RestApiResponse<Vec<models::GetListScheduleResponseInner>>>;
+    async fn get_margin_asset_risk_based_liquidation_ratio(
+        &self,
+    ) -> anyhow::Result<
+        RestApiResponse<Vec<models::GetMarginAssetRiskBasedLiquidationRatioResponseInner>>,
+    >;
+    async fn get_margin_restricted_assets(
+        &self,
+    ) -> anyhow::Result<RestApiResponse<models::GetMarginRestrictedAssetsResponse>>;
     async fn query_isolated_margin_tier_data(
         &self,
         params: QueryIsolatedMarginTierDataParams,
@@ -494,6 +502,52 @@ impl MarketDataApi for MarketDataApiClient {
         .await
     }
 
+    async fn get_margin_asset_risk_based_liquidation_ratio(
+        &self,
+    ) -> anyhow::Result<
+        RestApiResponse<Vec<models::GetMarginAssetRiskBasedLiquidationRatioResponseInner>>,
+    > {
+        let query_params = BTreeMap::new();
+        let body_params = BTreeMap::new();
+
+        send_request::<Vec<models::GetMarginAssetRiskBasedLiquidationRatioResponseInner>>(
+            &self.configuration,
+            "/sapi/v1/margin/risk-based-liquidation-ratio",
+            reqwest::Method::GET,
+            query_params,
+            body_params,
+            if HAS_TIME_UNIT {
+                self.configuration.time_unit
+            } else {
+                None
+            },
+            false,
+        )
+        .await
+    }
+
+    async fn get_margin_restricted_assets(
+        &self,
+    ) -> anyhow::Result<RestApiResponse<models::GetMarginRestrictedAssetsResponse>> {
+        let query_params = BTreeMap::new();
+        let body_params = BTreeMap::new();
+
+        send_request::<models::GetMarginRestrictedAssetsResponse>(
+            &self.configuration,
+            "/sapi/v1/margin/restricted-asset",
+            reqwest::Method::GET,
+            query_params,
+            body_params,
+            if HAS_TIME_UNIT {
+                self.configuration.time_unit
+            } else {
+                None
+            },
+            false,
+        )
+        .await
+    }
+
     async fn query_isolated_margin_tier_data(
         &self,
         params: QueryIsolatedMarginTierDataParams,
@@ -830,6 +884,58 @@ mod tests {
             let dummy_response: Vec<models::GetListScheduleResponseInner> =
                 serde_json::from_value(resp_json.clone())
                     .expect("should parse into Vec<models::GetListScheduleResponseInner>");
+
+            let dummy = DummyRestApiResponse {
+                inner: Box::new(move || Box::pin(async move { Ok(dummy_response) })),
+                status: 200,
+                headers: HashMap::new(),
+                rate_limits: None,
+            };
+
+            Ok(dummy.into())
+        }
+
+        async fn get_margin_asset_risk_based_liquidation_ratio(
+            &self,
+        ) -> anyhow::Result<
+            RestApiResponse<Vec<models::GetMarginAssetRiskBasedLiquidationRatioResponseInner>>,
+        > {
+            if self.force_error {
+                return Err(ConnectorError::ConnectorClientError {
+                    msg: "ResponseError".to_string(),
+                    code: None,
+                }
+                .into());
+            }
+
+            let resp_json: Value = serde_json::from_str(r#"[{"asset":"USDC","riskBasedLiquidationRatio":"0.01"},{"asset":"BUSD","riskBasedLiquidationRatio":"0.01"}]"#).unwrap();
+            let dummy_response : Vec<models::GetMarginAssetRiskBasedLiquidationRatioResponseInner> = serde_json::from_value(resp_json.clone()).expect("should parse into Vec<models::GetMarginAssetRiskBasedLiquidationRatioResponseInner>");
+
+            let dummy = DummyRestApiResponse {
+                inner: Box::new(move || Box::pin(async move { Ok(dummy_response) })),
+                status: 200,
+                headers: HashMap::new(),
+                rate_limits: None,
+            };
+
+            Ok(dummy.into())
+        }
+
+        async fn get_margin_restricted_assets(
+            &self,
+        ) -> anyhow::Result<RestApiResponse<models::GetMarginRestrictedAssetsResponse>> {
+            if self.force_error {
+                return Err(ConnectorError::ConnectorClientError {
+                    msg: "ResponseError".to_string(),
+                    code: None,
+                }
+                .into());
+            }
+
+            let resp_json: Value = serde_json::from_str(r#"{"openLongRestrictedAsset":["ADA","CHZ","ETH","LTC","XRP","币安人生"],"maxCollateralExceededAsset":["ACH","BNB","BTC","USDT"]}"#).unwrap();
+            let dummy_response: models::GetMarginRestrictedAssetsResponse =
+                serde_json::from_value(resp_json.clone())
+                    .expect("should parse into models::GetMarginRestrictedAssetsResponse");
 
             let dummy = DummyRestApiResponse {
                 inner: Box::new(move || Box::pin(async move { Ok(dummy_response) })),
@@ -1291,6 +1397,98 @@ mod tests {
             let params = GetListScheduleParams::builder().build().unwrap();
 
             match client.get_list_schedule(params).await {
+                Ok(_) => panic!("Expected an error"),
+                Err(err) => {
+                    assert_eq!(err.to_string(), "Connector client error: ResponseError");
+                }
+            }
+        });
+    }
+
+    #[test]
+    fn get_margin_asset_risk_based_liquidation_ratio_required_params_success() {
+        TOKIO_SHARED_RT.block_on(async {
+            let client = MockMarketDataApiClient { force_error: false };
+
+
+            let resp_json: Value = serde_json::from_str(r#"[{"asset":"USDC","riskBasedLiquidationRatio":"0.01"},{"asset":"BUSD","riskBasedLiquidationRatio":"0.01"}]"#).unwrap();
+            let expected_response : Vec<models::GetMarginAssetRiskBasedLiquidationRatioResponseInner> = serde_json::from_value(resp_json.clone()).expect("should parse into Vec<models::GetMarginAssetRiskBasedLiquidationRatioResponseInner>");
+
+            let resp = client.get_margin_asset_risk_based_liquidation_ratio().await.expect("Expected a response");
+            let data_future = resp.data();
+            let actual_response = data_future.await.unwrap();
+            assert_eq!(actual_response, expected_response);
+        });
+    }
+
+    #[test]
+    fn get_margin_asset_risk_based_liquidation_ratio_optional_params_success() {
+        TOKIO_SHARED_RT.block_on(async {
+            let client = MockMarketDataApiClient { force_error: false };
+
+
+            let resp_json: Value = serde_json::from_str(r#"[{"asset":"USDC","riskBasedLiquidationRatio":"0.01"},{"asset":"BUSD","riskBasedLiquidationRatio":"0.01"}]"#).unwrap();
+            let expected_response : Vec<models::GetMarginAssetRiskBasedLiquidationRatioResponseInner> = serde_json::from_value(resp_json.clone()).expect("should parse into Vec<models::GetMarginAssetRiskBasedLiquidationRatioResponseInner>");
+
+            let resp = client.get_margin_asset_risk_based_liquidation_ratio().await.expect("Expected a response");
+            let data_future = resp.data();
+            let actual_response = data_future.await.unwrap();
+            assert_eq!(actual_response, expected_response);
+        });
+    }
+
+    #[test]
+    fn get_margin_asset_risk_based_liquidation_ratio_response_error() {
+        TOKIO_SHARED_RT.block_on(async {
+            let client = MockMarketDataApiClient { force_error: true };
+
+            match client.get_margin_asset_risk_based_liquidation_ratio().await {
+                Ok(_) => panic!("Expected an error"),
+                Err(err) => {
+                    assert_eq!(err.to_string(), "Connector client error: ResponseError");
+                }
+            }
+        });
+    }
+
+    #[test]
+    fn get_margin_restricted_assets_required_params_success() {
+        TOKIO_SHARED_RT.block_on(async {
+            let client = MockMarketDataApiClient { force_error: false };
+
+
+            let resp_json: Value = serde_json::from_str(r#"{"openLongRestrictedAsset":["ADA","CHZ","ETH","LTC","XRP","币安人生"],"maxCollateralExceededAsset":["ACH","BNB","BTC","USDT"]}"#).unwrap();
+            let expected_response : models::GetMarginRestrictedAssetsResponse = serde_json::from_value(resp_json.clone()).expect("should parse into models::GetMarginRestrictedAssetsResponse");
+
+            let resp = client.get_margin_restricted_assets().await.expect("Expected a response");
+            let data_future = resp.data();
+            let actual_response = data_future.await.unwrap();
+            assert_eq!(actual_response, expected_response);
+        });
+    }
+
+    #[test]
+    fn get_margin_restricted_assets_optional_params_success() {
+        TOKIO_SHARED_RT.block_on(async {
+            let client = MockMarketDataApiClient { force_error: false };
+
+
+            let resp_json: Value = serde_json::from_str(r#"{"openLongRestrictedAsset":["ADA","CHZ","ETH","LTC","XRP","币安人生"],"maxCollateralExceededAsset":["ACH","BNB","BTC","USDT"]}"#).unwrap();
+            let expected_response : models::GetMarginRestrictedAssetsResponse = serde_json::from_value(resp_json.clone()).expect("should parse into models::GetMarginRestrictedAssetsResponse");
+
+            let resp = client.get_margin_restricted_assets().await.expect("Expected a response");
+            let data_future = resp.data();
+            let actual_response = data_future.await.unwrap();
+            assert_eq!(actual_response, expected_response);
+        });
+    }
+
+    #[test]
+    fn get_margin_restricted_assets_response_error() {
+        TOKIO_SHARED_RT.block_on(async {
+            let client = MockMarketDataApiClient { force_error: true };
+
+            match client.get_margin_restricted_assets().await {
                 Ok(_) => panic!("Expected an error"),
                 Err(err) => {
                     assert_eq!(err.to_string(), "Connector client error: ResponseError");

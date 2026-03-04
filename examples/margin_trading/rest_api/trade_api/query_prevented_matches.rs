@@ -4,9 +4,7 @@ use tracing::info;
 
 use binance_sdk::config::ConfigurationRestApi;
 use binance_sdk::logger;
-use binance_sdk::sub_account::{
-    SubAccountRestApi, rest_api::GetSummaryOfSubAccountsFuturesAccountParams,
-};
+use binance_sdk::margin_trading::{MarginTradingRestApi, rest_api::QueryPreventedMatchesParams};
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -23,21 +21,21 @@ async fn main() -> Result<()> {
         .api_secret(api_secret)
         .build()?;
 
-    // Create the SubAccount REST API client
-    let rest_client = SubAccountRestApi::production(rest_conf);
+    // Create the MarginTrading REST API client
+    let rest_client = MarginTradingRestApi::production(rest_conf);
 
     // Setup the API parameters
-    let params = GetSummaryOfSubAccountsFuturesAccountParams::builder(789, 789).build()?;
+    let params = QueryPreventedMatchesParams::builder("symbol_example".to_string()).build()?;
 
     // Make the API call
     let response = rest_client
-        .get_summary_of_sub_accounts_futures_account(params)
+        .query_prevented_matches(params)
         .await
-        .context("get_summary_of_sub_accounts_futures_account request failed")?;
+        .context("query_prevented_matches request failed")?;
 
-    info!(?response.rate_limits, "get_summary_of_sub_accounts_futures_account rate limits");
+    info!(?response.rate_limits, "query_prevented_matches rate limits");
     let data = response.data().await?;
-    info!(?data, "get_summary_of_sub_accounts_futures_account data");
+    info!(?data, "query_prevented_matches data");
 
     Ok(())
 }
