@@ -1,5 +1,189 @@
 # Changelog
 
+## 44.0.1 - 2026-03-24
+
+### Changed (2)
+
+- Fix bug with exposed secrets via Debug Trait.
+- Mark NFT as Deprecated.
+
+## 44.0.0 - 2026-03-19
+
+**Derivatives Trading Options**
+
+### Changed (9)
+
+#### REST API
+
+- Added parameter `selfTradePreventionMode`
+  - affected methods:
+    - `new_order()` (`POST /eapi/v1/order`)
+- Modified parameter `orders`:
+  - items: property `selfTradePreventionMode` added
+  - items: item property `selfTradePreventionMode` added
+  - affected methods:
+    - `place_multiple_orders()` (`POST /eapi/v1/batchOrders`)
+- Modified response for `cancel_multiple_option_orders()` (`DELETE /eapi/v1/batchOrders`):
+  - items: property `selfTradePreventionMode` added
+  - items: item property `selfTradePreventionMode` added
+
+- Modified response for `place_multiple_orders()` (`POST /eapi/v1/batchOrders`):
+  - items: property `selfTradePreventionMode` added
+  - items: item property `selfTradePreventionMode` added
+
+- Modified response for `option_margin_account_information()` (`GET /eapi/v1/marginAccount`):
+  - property `tradeGroupId` added
+
+- Modified response for `query_current_open_option_orders()` (`GET /eapi/v1/openOrders`):
+  - items: property `selfTradePreventionMode` added
+  - items: item property `selfTradePreventionMode` added
+
+- Modified response for `cancel_option_order()` (`DELETE /eapi/v1/order`):
+  - property `selfTradePreventionMode` added
+
+- Modified response for `query_single_order()` (`GET /eapi/v1/order`):
+  - property `selfTradePreventionMode` added
+
+- Modified response for `new_order()` (`POST /eapi/v1/order`):
+  - property `selfTradePreventionMode` added
+
+**Derivatives Trading Usds Futures**
+
+### Changed (2)
+
+#### WebSocket Streams
+
+- Modified response for `mark_price_stream_for_all_market()` (`!markPrice@arr@<updateSpeed>` stream):
+  - items: property `ap` added
+  - items: item property `ap` added
+
+- Modified response for `mark_price_stream()` (`<symbol>@markPrice@<updateSpeed>` stream):
+  - property `ap` added
+
+**Staking**
+
+### Changed (6)
+
+- Added parameter `purchaseId`
+  - affected methods:
+    - `get_eth_staking_history()` (`GET /sapi/v1/eth-staking/eth/history/stakingHistory`)
+    - `get_sol_staking_history()` (`GET /sapi/v1/sol-staking/sol/history/stakingHistory`)
+- Added parameter `redeemId`
+  - affected methods:
+    - `get_eth_redemption_history()` (`GET /sapi/v1/eth-staking/eth/history/redemptionHistory`)
+    - `get_sol_redemption_history()` (`GET /sapi/v1/sol-staking/sol/history/redemptionHistory`)
+- Modified response for `redeem_eth()` (`POST /sapi/v1/eth-staking/eth/redeem`):
+  - property `redeemId` added
+
+- Modified response for `redeem_sol()` (`POST /sapi/v1/sol-staking/sol/redeem`):
+  - property `redeemId` added
+
+- Modified response for `subscribe_sol_staking()` (`POST /sapi/v1/sol-staking/sol/stake`):
+  - property `purchaseId` added
+
+- Modified response for `subscribe_eth_staking()` (`POST /sapi/v2/eth-staking/eth/stake`):
+  - property `purchaseId` added
+
+## 43.0.0 - 2026-03-12
+
+**Derivatives Trading Options**
+
+### Changed (1)
+
+#### REST API
+
+- Modified response for `cancel_all_option_orders_on_specific_symbol()` (`DELETE /eapi/v1/allOpenOrders`):
+  - `code`: type `integer` → `string`
+
+**Derivatives Trading Usds Futures**
+
+### Changed (1)
+
+#### REST API
+
+- Modified response for `query_order()` (`GET /fapi/v1/order`):
+  - property `origQty` added
+  - property `symbol` added
+  - property `cumQuote` added
+  - property `priceRate` added
+  - property `type` added
+  - property `time` added
+  - property `orderId` added
+  - property `timeInForce` added
+  - property `priceProtect` added
+  - property `closePosition` added
+  - property `activatePrice` added
+  - property `stopPrice` added
+  - property `executedQty` added
+  - property `reduceOnly` added
+  - property `avgPrice` added
+  - property `price` added
+  - property `side` added
+  - property `positionSide` added
+  - property `updateTime` added
+  - property `workingType` added
+  - property `origType` added
+  - property `clientOrderId` added
+  - property `id` deleted
+  - property `result` deleted
+  - `status`: type `integer` → `string`
+
+**Simple Earn**
+
+### Changed (1)
+
+- Modified response for `get_bfusd_quota_details()` (`GET /sapi/v1/bfusd/quota`):
+  - property `subscriptionQuota` added
+
+**Spot**
+
+### Added (7)
+
+#### REST API
+
+- `execution_rules()` (`GET /api/v3/executionRules`)
+- `reference_price()` (`GET /api/v3/referencePrice`)
+- `reference_price_calculation()` (`GET /api/v3/referencePrice/calculation`)
+
+#### WebSocket API
+
+- `execution_rules()` (`executionRules` method)
+- `reference_price()` (`referencePrice` method)
+- `reference_price_calculation()` (`referencePrice.calculation` method)
+
+#### WebSocket Streams
+
+- `reference_price()` (`<symbol>@referencePrice` stream)
+
+## 42.0.0 - 2026-03-05
+
+**Derivatives Trading Coin Futures**
+
+### Changed (1)
+
+#### REST API
+
+- Modified response for `exchange_information()` (`GET /dapi/v1/exchangeInfo`):
+  - `symbols`.items: property `orderTypes` added
+  - `symbols`.items: property `OrderType` deleted
+  - `symbols`.items: item property `orderTypes` added
+  - `symbols`.items: item property `OrderType` deleted
+
+**Derivatives Trading Usds Futures**
+
+### Changed (2)
+
+#### REST API
+
+- Modified response for `exchange_information()` (`GET /fapi/v1/exchangeInfo`):
+  - `symbols`.items: property `orderTypes` added
+  - `symbols`.items: property `OrderType` deleted
+  - `symbols`.items: item property `orderTypes` added
+  - `symbols`.items: item property `OrderType` deleted
+
+- Modified response for `cancel_order()` (`DELETE /fapi/v1/order`):
+  - property `avgPrice` added
+
 ## 41.0.0 - 2026-03-02
 
 **Wallet**
